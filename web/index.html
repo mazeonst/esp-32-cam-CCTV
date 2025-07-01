@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>ESP32-CAM Surveillance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-[#121212] text-zinc-800 dark:text-zinc-100 selection:bg-indigo-500/20">
+
+<!-- Toast notifications -->
+<div id="toastContainer" class="fixed bottom-6 right-6 flex flex-col gap-3 z-[100]"></div>
+
+<!-- Main App Structure -->
+<div id="app" class="flex flex-col items-center w-full">
+  
+  <!-- Header with tabs -->
+  <header class="w-full sticky top-0 z-50">
+    <div class="relative flex items-center justify-between px-4 sm:px-6 py-3 backdrop-blur-lg bg-white/60 dark:bg-[#1f1f1f]/60 shadow-sm rounded-b-2xl">
+      <div id="clock" class="font-mono text-sm opacity-80"></div>
+      <h1 class="font-semibold text-lg tracking-tight absolute left-1/2 -translate-x-1/2 whitespace-nowrap">
+        <i class="fas fa-camera mr-2 text-indigo-500"></i>ESP32-CAM Surveillance
+      </h1>
+      
+      <!-- Desktop Navigation -->
+      <nav class="hidden sm:flex gap-3 items-center">
+        <button id="themeToggle" class="icon-btn"><i class="fa-regular fa-moon"></i></button>
+        <button id="tabLive" class="tab-btn active" data-tab="live">
+          <i class="fas fa-video mr-1"></i>Live View
+        </button>
+        <button id="tabRecordings" class="tab-btn" data-tab="recordings">
+          <i class="fas fa-photo-film mr-1"></i>Recordings
+        </button>
+        <button id="tabSettings" class="tab-btn" data-tab="settings">
+          <i class="fas fa-gear mr-1"></i>Settings
+        </button>
+      </nav>
+      
+      <!-- Mobile menu button -->
+      <button id="mobileMenuBtn" class="sm:hidden icon-btn">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="w-full max-w-6xl p-6 flex flex-col gap-8">
+    
+    <!-- Live View Tab -->
+    <section id="liveTab" class="tab-content active">
+      <div class="content-card">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-video"></i> Live Camera Feed
+        </h2>
+        
+        <div class="cam-container relative">
+          <img id="liveFeed" src="" class="w-full rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700">
+          <div class="cam-overlay">
+            <span id="feedTimestamp">--</span>
+            <span id="feedResolution" class="ml-2"></span>
+          </div>
+          
+          <div class="cam-controls mt-4">
+            <button id="startStreamBtn" class="glass-btn">
+              <i class="fas fa-play mr-2"></i>Start Stream
+            </button>
+            <button id="snapshotBtn" class="glass-btn">
+              <i class="fas fa-camera mr-2"></i>Take Snapshot
+            </button>
+            <button id="fullscreenBtn" class="glass-btn">
+              <i class="fas fa-expand mr-2"></i>Fullscreen
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="content-card">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-chart-line"></i> System Status
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="status-card">
+            <i class="fas fa-microchip"></i>
+            <h3>ESP32 Status</h3>
+            <span id="espStatus">Disconnected</span>
+          </div>
+          <div class="status-card">
+            <i class="fas fa-wifi"></i>
+            <h3>WiFi Strength</h3>
+            <span id="wifiStrength">--</span>
+          </div>
+          <div class="status-card">
+            <i class="fas fa-database"></i>
+            <h3>Storage</h3>
+            <span id="storageStatus">--</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Recordings Tab -->
+    <section id="recordingsTab" class="tab-content">
+      <div class="content-card">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-photo-film"></i> Recorded Snapshots
+        </h2>
+        
+        <div class="flex justify-between items-center mb-4">
+          <div class="flex gap-2">
+            <input type="date" id="recordingsDateFilter" class="glass-btn">
+            <button id="refreshRecordingsBtn" class="icon-btn">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <button id="deleteAllBtn" class="glass-btn bg-red-500/20 text-red-500">
+            <i class="fas fa-trash mr-2"></i>Delete All
+          </button>
+        </div>
+        
+        <div id="recordingsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <!-- Snapshots will be loaded here -->
+          <div class="text-center py-8 text-slate-400">
+            <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+            <p>Loading snapshots...</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Settings Tab -->
+    <section id="settingsTab" class="tab-content">
+      <div class="content-card">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-gear"></i> Camera Settings
+        </h2>
+        
+        <form id="cameraSettingsForm" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="setting-group">
+            <label>Capture Interval (seconds)</label>
+            <input type="number" id="captureInterval" min="1" max="3600" class="glass-btn">
+          </div>
+          
+          <div class="setting-group">
+            <label>Image Quality</label>
+            <select id="imageQuality" class="glass-btn">
+              <option value="10">Low</option>
+              <option value="20" selected>Medium</option>
+              <option value="30">High</option>
+            </select>
+          </div>
+          
+          <div class="setting-group">
+            <label>Resolution</label>
+            <select id="resolution" class="glass-btn">
+              <option value="vga">VGA (640x480)</option>
+              <option value="svga">SVGA (800x600)</option>
+              <option value="xga">XGA (1024x768)</option>
+            </select>
+          </div>
+          
+          <div class="setting-group">
+            <label>Night Mode</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="nightMode">
+              <span class="slider"></span>
+            </label>
+          </div>
+          
+          <div class="md:col-span-2 flex justify-end gap-4">
+            <button type="button" id="resetSettingsBtn" class="glass-btn bg-slate-200 dark:bg-slate-800">
+              <i class="fas fa-undo mr-2"></i>Reset
+            </button>
+            <button type="submit" class="glass-btn bg-indigo-500 text-white">
+              <i class="fas fa-save mr-2"></i>Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="content-card">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+          <i class="fas fa-shield-alt"></i> Security Settings
+        </h2>
+        
+        <form id="securitySettingsForm" class="space-y-4">
+          <div class="setting-group">
+            <label>Authentication Token</label>
+            <div class="flex gap-2">
+              <input type="text" id="authToken" class="glass-btn flex-1" readonly>
+              <button type="button" id="generateTokenBtn" class="icon-btn">
+                <i class="fas fa-redo"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="setting-group">
+            <label>Change Password</label>
+            <input type="password" id="newPassword" placeholder="New password" class="glass-btn w-full">
+            <input type="password" id="confirmPassword" placeholder="Confirm password" class="glass-btn w-full mt-2">
+          </div>
+          
+          <div class="flex justify-end">
+            <button type="submit" class="glass-btn bg-indigo-500 text-white">
+              <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Modals -->
+<div id="snapshotModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close">&times;</button>
+    <img id="modalSnapshot" src="" class="modal-image">
+    <div class="modal-footer">
+      <span id="modalTimestamp" class="text-sm opacity-70"></span>
+      <div class="flex gap-2">
+        <button id="downloadSnapshotBtn" class="glass-btn">
+          <i class="fas fa-download mr-2"></i>Download
+        </button>
+        <button id="deleteSnapshotBtn" class="glass-btn bg-red-500/20 text-red-500">
+          <i class="fas fa-trash mr-2"></i>Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Menu (hidden by default) -->
+<div id="mobileMenu" class="mobile-menu hidden">
+  <button class="tab-btn active" data-tab="live">
+    <i class="fas fa-video mr-2"></i>Live View
+  </button>
+  <button class="tab-btn" data-tab="recordings">
+    <i class="fas fa-photo-film mr-2"></i>Recordings
+  </button>
+  <button class="tab-btn" data-tab="settings">
+    <i class="fas fa-gear mr-2"></i>Settings
+  </button>
+  <button class="tab-btn" id="mobileLogoutBtn">
+    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+  </button>
+</div>
+
+<script src="assets/js/camera.js"></script>
+<script>
+// Основная логика приложения
+document.addEventListener('DOMContentLoaded', () => {
+  // Инициализация темы
+  const currentTheme = localStorage.getItem('theme') || 
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+  
+  // Обработчики событий
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  document.getElementById('mobileMenuBtn').addEventListener('click', toggleMobileMenu);
+  
+  // Инициализация вкладок
+  initTabs();
+  
+  // Загрузка данных камеры
+  loadCameraStatus();
+});
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+function toggleMobileMenu() {
+  document.getElementById('mobileMenu').classList.toggle('hidden');
+}
+
+function initTabs() {
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Удаляем active класс у всех вкладок
+      tabs.forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      // Добавляем active класс к выбранной вкладке
+      tab.classList.add('active');
+      const tabId = tab.getAttribute('data-tab');
+      document.getElementById(`${tabId}Tab`).classList.add('active');
+      
+      // Закрываем мобильное меню если оно открыто
+      document.getElementById('mobileMenu').classList.add('hidden');
+      
+      // Загружаем данные при переключении вкладок
+      if(tabId === 'recordings') {
+        loadRecordings();
+      } else if(tabId === 'live') {
+        startLiveStream();
+      }
+    });
+  });
+}
+
+// Здесь будут другие функции для работы с камерой...
+</script>
+</body>
+</html>
