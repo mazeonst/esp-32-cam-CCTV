@@ -2,32 +2,7 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
-
-// Настройки Wi-Fi
-const char* ssid = "HUAWEI-1CFXZ6";
-const char* password = "Mirmi4kov365";
-
-// Настройки сервера
-const char* server = "mirmikov.tech";
-const char* auth_token = "6WVCA";
-
-// Конфигурация камеры
-#define PWDN_GPIO_NUM     32
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM      0
-#define SIOD_GPIO_NUM     26
-#define SIOC_GPIO_NUM     27
-#define Y9_GPIO_NUM       35
-#define Y8_GPIO_NUM       34
-#define Y7_GPIO_NUM       39
-#define Y6_GPIO_NUM       36
-#define Y5_GPIO_NUM       21
-#define Y4_GPIO_NUM       19
-#define Y3_GPIO_NUM       18
-#define Y2_GPIO_NUM        5
-#define VSYNC_GPIO_NUM    25
-#define HREF_GPIO_NUM     23
-#define PCLK_GPIO_NUM     22
+#include "config.h"
 
 void setupCamera() {
   camera_config_t config;
@@ -78,7 +53,7 @@ void sendImageToServer(camera_fb_t *fb) {
   if (!fb) return;
 
   WiFiClientSecure client;
-  client.setInsecure();                      // skip TLS validation (or load your CA)
+  client.setInsecure(); // Skip TLS validation (or load your CA)
   HTTPClient http;
 
   const String url = String("https://") + server + "/api/upload_cam";
@@ -88,7 +63,6 @@ void sendImageToServer(camera_fb_t *fb) {
     http.addHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
     http.addHeader("X-Auth-Token", auth_token);
 
-    // build multipart body
     String bodyHeader =
       "--" + boundary + "\r\n"
       "Content-Disposition: form-data; name=\"file\"; filename=\"image.jpg\"\r\n"
@@ -96,7 +70,6 @@ void sendImageToServer(camera_fb_t *fb) {
 
     String bodyFooter = "\r\n--" + boundary + "--\r\n";
 
-    // allocate one buffer: header + image + footer
     size_t totalLen = bodyHeader.length() + fb->len + bodyFooter.length();
     uint8_t *payload = (uint8_t*)malloc(totalLen);
     if (!payload) { Serial.println("OOM"); return; }
@@ -130,7 +103,7 @@ void setup() {
 void loop() {
   static unsigned long lastCapture = 0;
   
-  if (millis() - lastCapture >= 10000) { // Каждые 10 секунд
+  if (millis() - lastCapture >= CAPTURE_INTERVAL) {
     lastCapture = millis();
     
     if (WiFi.status() == WL_CONNECTED) {
