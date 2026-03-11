@@ -1,6 +1,6 @@
 # ESP32-CAM CCTV
 
-https://www.instagram.com/p/DLopRmlNkgL/
+https://www.instagram.com/p/DLopRmlNkgL
 
 ESP32-CAM CCTV is a compact surveillance starter project built around three components:
 
