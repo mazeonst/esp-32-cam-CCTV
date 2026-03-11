@@ -53,7 +53,7 @@ void sendImageToServer(camera_fb_t *fb) {
   if (!fb) return;
 
   WiFiClientSecure client;
-  client.setInsecure(); // Skip TLS validation (or load your CA)
+  client.setInsecure(); // Skip TLS validation during development, or load your CA certificate.
   HTTPClient http;
 
   const String url = String("https://") + server + "/api/upload_cam";
