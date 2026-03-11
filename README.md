@@ -2,7 +2,7 @@
 
 ESP32-CAM CCTV is a compact surveillance starter project built around three components:
 
-- `firmware/`: ESP32-CAM firmware that captures JPEG frames and uploads them to a backend.
+- `firmware/`: ESP32-CAM firmware assets, including the main CCTV uploader and a preserved serial demo.
 - `server/`: FastAPI backend that stores images, exposes a simple API, and serves the frontend.
 - `web/`: Static dashboard for viewing the latest frame, browsing snapshots, and managing local settings.
 
@@ -43,6 +43,7 @@ ESP32-CAM CCTV is a compact surveillance starter project built around three comp
 - Web dashboard for live refresh, browsing, download, and deletion
 - Basic persisted settings API for dashboard configuration
 - Static frontend served directly by FastAPI
+- Preserved standalone serial dithering example from the older device workflow
 
 ## Architecture
 
@@ -50,6 +51,15 @@ ESP32-CAM CCTV is a compact surveillance starter project built around three comp
 2. The firmware uploads the frame to the FastAPI backend using `multipart/form-data`.
 3. The backend stores the latest images under `storage/camera/`, trims older files, and exposes read/write endpoints.
 4. The frontend polls the backend for the latest frame and lists stored snapshots.
+
+## Firmware Variants
+
+This repository now contains two different ESP32-CAM firmwares:
+
+- `firmware/src/main.cpp`: the actual CCTV firmware for this project; it uploads JPEG frames to the backend.
+- `firmware/examples/serial_dither_demo.cpp`: a standalone sketch derived from the older working serial-based setup; it does not talk to the backend.
+
+If your earlier board worked with the serial+dithering sketch, that does not mean it was already running the CCTV firmware. They share the same board pinout, but they are different applications.
 
 ## Quick Start
 

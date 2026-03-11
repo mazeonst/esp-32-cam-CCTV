@@ -56,7 +56,7 @@ void sendImageToServer(camera_fb_t *fb) {
   client.setInsecure(); // Skip TLS validation during development, or load your CA certificate.
   HTTPClient http;
 
-  const String url = String("https://") + server + "/api/upload_cam";
+  const String url = String("https://") + server + "/api/camera/upload";
   const String boundary = "----CAM" + String(millis());
 
   if (http.begin(client, url)) {
