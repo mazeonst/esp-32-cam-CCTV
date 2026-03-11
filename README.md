@@ -120,7 +120,3 @@ See [`.env.example`](.env.example) for defaults.
 - `POST /api/camera/snapshot` creates a copy of the most recent uploaded frame. It does not trigger the ESP32-CAM shutter remotely.
 - The default firmware uses `WiFiClientSecure::setInsecure()`. For production, replace that with proper certificate validation.
 - The repository is prepared for public hosting, but you should still review credentials, storage policy, and TLS settings before deployment.
-
-## License
-
-Add the license that matches your publication plans before making the repository public.
